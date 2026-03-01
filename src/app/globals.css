@@ -75,6 +75,13 @@ html, body {
 }
 .reset-btn:hover { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.2); }
 .reset-btn svg { width: 12px; height: 12px; }
+.config-btn {
+  width: 34px; height: 34px;
+  border-radius: 8px; border: 1px solid var(--border-medium);
+  background: var(--bg-deep); color: var(--text-secondary);
+  font-size: 15px; cursor: pointer; transition: all 0.2s;
+}
+.config-btn:hover { color: var(--text-primary); border-color: rgba(96,165,250,0.3); }
 
 /* ── Toolbar ── */
 .arena-toolbar {
@@ -215,6 +222,79 @@ html, body {
 .send-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(59,130,246,0.35); }
 .send-btn:active { transform: scale(0.98); }
 .send-btn:disabled { opacity: 0.2; cursor: not-allowed; }
+
+.config-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.config-modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-medium);
+  border-radius: 20px;
+  padding: 28px;
+  width: 480px;
+  max-width: 90vw;
+}
+.config-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+.config-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: block;
+}
+.config-input {
+  background: var(--bg-deep);
+  border: 1px solid var(--border-medium);
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--text-primary);
+  outline: none;
+  transition: all 0.2s;
+  width: 100%;
+  margin-bottom: 14px;
+}
+.config-input::placeholder { color: var(--text-muted); }
+.config-input:focus { border-color: rgba(96,165,250,0.3); box-shadow: 0 0 0 3px rgba(96,165,250,0.06); }
+.config-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.config-save {
+  padding: 8px 20px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  border: none;
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(59,130,246,0.25);
+  transition: all 0.2s;
+}
+.config-save:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(59,130,246,0.35); }
+.config-cancel {
+  background: transparent;
+  border: 1px solid var(--border-medium);
+  color: var(--text-secondary);
+  padding: 8px 20px;
+  border-radius: 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
 
 /* Image preview */
 .image-preview-bar {

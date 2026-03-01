@@ -2,7 +2,7 @@
 
 export async function POST(request: NextRequest) {
   try {
-    const { baseUrl } = await request.json();
+    const { baseUrl, openiaUrl } = await request.json();
     if (!baseUrl) return NextResponse.json({ status: "error", detail: "URL vazia" });
 
     const url = baseUrl.replace(/\/+$/, "");
@@ -11,8 +11,10 @@ export async function POST(request: NextRequest) {
       headers: { "ngrok-skip-browser-warning": "true" },
     }).catch(() => null);
 
-    const openiaUrl = url.replace(":8002", ":8003");
-    const openiaRes = await fetch(openiaUrl + "/health", {
+    const openiaHealthUrl = openiaUrl
+      ? openiaUrl.replace(/\/+$/, "")
+      : url.replace(":8002", ":8003");
+    const openiaRes = await fetch(openiaHealthUrl + "/health", {
       signal: AbortSignal.timeout(10000),
       headers: { "ngrok-skip-browser-warning": "true" },
     }).catch(() => null);

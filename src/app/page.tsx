@@ -19,13 +19,17 @@ type ViewMode = "cebi" | "comparison" | "openia";
 type Agent = "arkas" | "os" | "rag";
 
 export default function ArenaPage() {
-  const [baseUrl] = useState("http://localhost:8002");
+  const [baseUrl, setBaseUrl] = useState("http://localhost:8002");
+  const [openiaBaseUrl, setOpeniaBaseUrl] = useState("http://localhost:8003");
+  const [showConfig, setShowConfig] = useState(false);
+  const [configBaseUrl, setConfigBaseUrl] = useState("http://localhost:8002");
+  const [configOpeniaUrl, setConfigOpeniaUrl] = useState("http://localhost:8003");
   const [localOnline, setLocalOnline] = useState(false);
   const [openiaOnline, setOpeniaOnline] = useState(false);
   const [localMessages, setLocalMessages] = useState<PanelMessage[]>([]);
   const [openiaMessages, setOpeniaMessages] = useState<PanelMessage[]>([]);
   const [loading, setLoading] = useState(false);
-  const [sessionId, setSessionId] = useState("arena-" + Date.now());
+  const [sessionId, setSessionId] = useState(() => "arena-" + Date.now());
   const [totalMessages, setTotalMessages] = useState(0);
   const [localTotalLatency, setLocalTotalLatency] = useState(0);
   const [openiaTotalLatency, setOpeniaTotalLatency] = useState(0);
@@ -33,13 +37,34 @@ export default function ArenaPage() {
   const [openaiModel, setOpenaiModel] = useState("gpt-4.1-mini");
   const [agent, setAgent] = useState<Agent>("arkas");
 
+  const openiaUrl = baseUrl.includes("ngrok")
+    ? openiaBaseUrl
+    : baseUrl.replace(":8002", ":8003");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("cebi-arena-baseUrl");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (saved) setBaseUrl(saved);
+
+    const savedOpenia = localStorage.getItem("cebi-arena-openiaUrl");
+    if (savedOpenia) setOpeniaBaseUrl(savedOpenia);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("cebi-arena-baseUrl", baseUrl);
+  }, [baseUrl]);
+
+  useEffect(() => {
+    localStorage.setItem("cebi-arena-openiaUrl", openiaBaseUrl);
+  }, [openiaBaseUrl]);
+
   useEffect(() => {
     async function autoConnect() {
       try {
         const res = await fetch("/api/test-ollama", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ baseUrl }),
+          body: JSON.stringify({ baseUrl, openiaUrl }),
         });
         const data = await res.json();
         setLocalOnline(data.local === "online");
@@ -51,7 +76,7 @@ export default function ArenaPage() {
     autoConnect();
     const interval = setInterval(autoConnect, 30000);
     return () => clearInterval(interval);
-  }, [baseUrl]);
+  }, [baseUrl, openiaUrl]);
 
   const resetConversation = useCallback(() => {
     setLocalMessages([]);
@@ -61,6 +86,22 @@ export default function ArenaPage() {
     setOpeniaTotalLatency(0);
     setSessionId("arena-" + Date.now());
   }, []);
+
+  const openConfigModal = useCallback(() => {
+    setConfigBaseUrl(baseUrl);
+    setConfigOpeniaUrl(openiaBaseUrl || baseUrl.replace(":8002", ":8003"));
+    setShowConfig(true);
+  }, [baseUrl, openiaBaseUrl]);
+
+  const saveConfig = useCallback(() => {
+    const nextBase = configBaseUrl.trim() || "http://localhost:8002";
+    const derivedOpenia = nextBase.replace(":8002", ":8003");
+    const nextOpenia = configOpeniaUrl.trim() || derivedOpenia;
+
+    setBaseUrl(nextBase);
+    setOpeniaBaseUrl(nextBase.includes("ngrok") ? nextOpenia : derivedOpenia);
+    setShowConfig(false);
+  }, [configBaseUrl, configOpeniaUrl]);
 
   const sendMessage = useCallback(
     async (message: string, imageBase64?: string) => {
@@ -85,7 +126,7 @@ export default function ArenaPage() {
             message,
             image: imageBase64 || null,
             localUrl: mode !== "openia" && localOnline ? baseUrl : null,
-            openiaUrl: mode !== "cebi" && openiaOnline ? baseUrl.replace(":8002", ":8003") : null,
+            openiaUrl: mode !== "cebi" && openiaOnline ? openiaUrl : null,
             sessionId,
             openaiModel,
             agent,
@@ -141,7 +182,7 @@ export default function ArenaPage() {
       }
       setLoading(false);
     },
-    [loading, baseUrl, localOnline, openiaOnline, sessionId, mode, openaiModel, agent]
+    [loading, baseUrl, openiaUrl, localOnline, openiaOnline, sessionId, mode, openaiModel, agent]
   );
 
   const agentLabels: Record<Agent, string> = {
@@ -152,7 +193,6 @@ export default function ArenaPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
-      {/* Header */}
       <div className="arena-header">
         <div className="logo-group">
           <div className="logo-mark">CA</div>
@@ -169,6 +209,9 @@ export default function ArenaPage() {
             </svg>
             Nova conversa
           </button>
+          <button className="config-btn" onClick={openConfigModal} aria-label="Configurar URLs">
+            ⚙️
+          </button>
           <div className="header-status">
             <div className={"status-pill " + (localOnline ? "online-green" : "offline")}>
               <div className="dot" /> Local {localOnline ? "✓" : "—"}
@@ -180,7 +223,6 @@ export default function ArenaPage() {
         </div>
       </div>
 
-      {/* Toolbar */}
       <Toolbar
         mode={mode}
         setMode={setMode}
@@ -190,7 +232,6 @@ export default function ArenaPage() {
         setAgent={setAgent}
       />
 
-      {/* Arena */}
       <div className="arena-container">
         {mode !== "openia" && (
           <ChatPanel
@@ -225,6 +266,49 @@ export default function ArenaPage() {
         openiaLatency={openiaTotalLatency}
       />
       <MessageInput onSend={sendMessage} disabled={loading} />
+
+      {showConfig && (
+        <div className="config-overlay" onClick={() => setShowConfig(false)}>
+          <div className="config-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="config-title">Configurar backends</div>
+
+            <label className="config-label" htmlFor="backend-url">
+              URL Backend (ngrok)
+            </label>
+            <input
+              id="backend-url"
+              className="config-input"
+              value={configBaseUrl}
+              onChange={(e) => setConfigBaseUrl(e.target.value)}
+              placeholder="https://xxxx.ngrok-free.app"
+            />
+
+            {configBaseUrl.includes("ngrok") && (
+              <>
+                <label className="config-label" htmlFor="openia-url">
+                  URL Backend OpenIA (ngrok)
+                </label>
+                <input
+                  id="openia-url"
+                  className="config-input"
+                  value={configOpeniaUrl}
+                  onChange={(e) => setConfigOpeniaUrl(e.target.value)}
+                  placeholder="https://yyyy.ngrok-free.app"
+                />
+              </>
+            )}
+
+            <div className="config-actions">
+              <button className="config-cancel" onClick={() => setShowConfig(false)}>
+                Cancelar
+              </button>
+              <button className="config-save" onClick={saveConfig}>
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
